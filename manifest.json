@@ -1,0 +1,13 @@
+{
+  "Author": "离披&Github Contributors",
+  "InternalName": "SkillTipsResponseAnalyzer",
+  "Name": "育成结束时给出评分最大化的技能点法",
+  "Description": "有时候会有1~10分的误差，数据更新不及时会不准，精度不高仅供参考",
+  "Changelog": "",
+  "Version": "1.0.0",
+  "Dependencies": [],
+  "Targets": [],
+  "RepositoryUrl": "https://github.com/URA-Plugins/SkillTipsResponseAnalyzer",
+  "DownloadUrl": "https://gh.shuise.dev/github.com/URA-Plugins/SkillTipsResponseAnalyzer/releases/latest/download/SkillTipsResponseAnalyzer.zip",
+  "LastUpdate": "1751719983"
+}
