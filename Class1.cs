@@ -23,7 +23,7 @@ namespace SkillTipsResponseAnalyzer
 
         public async Task UpdatePlugin(ProgressContext ctx)
         {
-            var progress = ctx.AddTask($"[{Name}] 更新");
+            var progress = ctx.AddTask($"[[{Name}]] 更新");
 
             using var client = new HttpClient();
             using var resp = await client.GetAsync($"https://api.github.com/repos/URA-Plugins/{Name}/releases/latest");
@@ -81,6 +81,7 @@ namespace SkillTipsResponseAnalyzer
         public static void ParseSkillTipsResponse(Gallop.SingleModeCheckEventResponse @event)
         {
             var skills = Database.Skills.Apply(@event.data.chara_info);
+            ReplaceAllSkillWithUpgradeSkill(@event, skills, []);
             var tips = CalculateSkillScoreCost(@event, skills, true);
             var totalSP = @event.data.chara_info.skill_point;
             // 可以进化的天赋技能，即觉醒3、5的那两个金技能
@@ -117,17 +118,18 @@ namespace SkillTipsResponseAnalyzer
                 }
                 else
                 {
-                    if (skills[i.skill_id] == null) continue;
+                    var skill = skills[i.skill_id];
+                    if (skill == null) continue;
                     var (GroupId, Rarity, Rate) = skills.Deconstruction(i.skill_id);
                     var upgradableSkills = upgradableTalentSkills.FirstOrDefault(x => x.SkillId == i.skill_id);
                     // 学了可进化的技能，且满足进化条件，则按进化计算分数
                     if (upgradableSkills != default && upgradableSkills.CanUpgrade(@event.data.chara_info, out var upgradedSkillId, dpResult.Item1))
                     {
-                        previousLearnPoint += skills[upgradedSkillId] == null ? 0 : skills[upgradedSkillId].Grade;
+                        previousLearnPoint += skill.Upgrades.First(x => x.Id == upgradedSkillId).Grade;
                     }
                     else
                     {
-                        previousLearnPoint += skills[i.skill_id] == null ? 0 : skills[i.skill_id].Grade;
+                        previousLearnPoint += skill.Grade;
                     }
                 }
             }
@@ -186,11 +188,11 @@ namespace SkillTipsResponseAnalyzer
             }
             #endregion
         }
-        public static IEnumerable<SkillData> ReplaceAllSkillWithUpgradeSkill(Gallop.SingleModeCheckEventResponse @event, SkillManager skillmanager, List<SkillData> willLearnSkills)
+        public static List<SkillData> ReplaceAllSkillWithUpgradeSkill(Gallop.SingleModeCheckEventResponse @event, SkillManager skillmanager, List<SkillData> willLearnSkills)
         {
             skillmanager.Evolve(@event.data.chara_info, willLearnSkills);
             #region 角色进化
-            foreach (var baseSkill in skillmanager.GetSkills().Where(x => x.Upgrades.Any(y => y.IsScenarioEvolution == false)))
+            foreach (var baseSkill in skillmanager.GetSkills().Where(x => !x.DisplayName.Contains($"角色{I18N_Evolved}") && x.Upgrades.Any(y => y.IsScenarioEvolution == false)))
             {
                 var best = baseSkill.Upgrades.Where(x => x.IsScenarioEvolution == false).OrderByDescending(x => x.Grade).First();
                 baseSkill.DisplayName = $"{baseSkill.DisplayName}(角色{I18N_Evolved}->{best.DisplayName})";
@@ -211,8 +213,9 @@ namespace SkillTipsResponseAnalyzer
             #endregion
             #region 剧本进化
 #warning TODO
-            var evolvedCount = 0; // 剧本进化最多两个，但是可进化的可能更多
-            foreach (var baseSkill in skillmanager.GetSkills().Where(x => x.Upgrades.Any(y => y.IsScenarioEvolution == true)).OrderByDescending(x => x.Upgrades.Max(y => y.Grade)))
+            var scenarioSkills = skillmanager.GetSkills().Where(x => x.Upgrades.Any(y => y.IsScenarioEvolution == true)).OrderByDescending(x => x.Upgrades.Max(y => y.Grade));
+            var evolvedCount = scenarioSkills.Count(x => x.DisplayName.Contains($"剧本{I18N_Evolved}")); // 剧本进化最多两个，但是可进化的可能更多
+            foreach (var baseSkill in scenarioSkills)
             {
                 if (evolvedCount == 2) break; // 剧本进化最多两个
                 var best = baseSkill.Upgrades.Where(x => x.IsScenarioEvolution == true).OrderByDescending(x => x.Grade).First();
@@ -240,9 +243,7 @@ namespace SkillTipsResponseAnalyzer
         public static List<SkillData> CalculateSkillScoreCost(Gallop.SingleModeCheckEventResponse @event, SkillManager skills, bool removeInferiors)
         {
             var hasUnknownSkills = false;
-            var totalSP = @event.data.chara_info.skill_point;
             var tipsRaw = @event.data.chara_info.skill_tips_array;
-            var tipsExistInDatabase = tipsRaw.Where(x => skills[(x.group_id, x.rarity)] != null);//去掉数据库中没有的技能，避免报错
             var tipsNotExistInDatabase = tipsRaw.Where(x => skills[(x.group_id, x.rarity)] == null);//数据库中没有的技能
             foreach (var i in tipsNotExistInDatabase)
             {
@@ -261,36 +262,22 @@ namespace SkillTipsResponseAnalyzer
                 }
                 AnsiConsole.MarkupLine($"[red]{lineToPrint}[/]");
             }
-            //翻译技能tips方便使用
-            var tips = tipsExistInDatabase
-                .SelectMany(x => skills[(x.group_id, x.rarity)])
-                .Where(x => x.Rate > 0)
-                .ToList();
+            var tips = skills.GetSkills();
             //添加天赋技能
             var unknownUma = false;//新出的马娘的天赋技能不在数据库中
-            if (Database.TalentSkill.TryGetValue(@event.data.chara_info.card_id, out var value))
-            {
-                foreach (var i in value.Where(x => x.Rank <= @event.data.chara_info.talent_level))
-                {
-                    if (!tips.Any(x => x.Id == i.SkillId) && !@event.data.chara_info.skill_array.Any(y => y.skill_id == i.SkillId))
-                    {
-                        tips.Add(skills[i.SkillId]);
-                    }
-                }
-            }
-            else
+            if (!Database.TalentSkill.ContainsKey(@event.data.chara_info.card_id))
             {
                 unknownUma = true;
             }
             //添加上位技能缺少的下位技能（为方便计算切者技能点）
-            foreach (var group in tips.GroupBy(x => x.GroupId))
-            {
-                var additionalSkills = skills.GetAllByGroupId(group.Key)
-                    .Where(x => x.Rarity < group.Max(y => y.Rarity) || x.Rate < group.Max(y => y.Rate))
-                    .Where(x => x.Rate > 0);
-                var ids = additionalSkills.ExceptBy(tips.Select(x => x.Id), x => x.Id);
-                tips.AddRange(ids);
-            }
+            //foreach (var group in tips.GroupBy(x => x.GroupId))
+            //{
+            //    var additionalSkills = skills.GetAllByGroupId(group.Key)
+            //        .Where(x => x.Rarity < group.Max(y => y.Rarity) || x.Rate < group.Max(y => y.Rate))
+            //        .Where(x => x.Rate > 0);
+            //    var ids = additionalSkills.ExceptBy(tips.Select(x => x.Id), x => x.Id);
+            //    tips.AddRange(ids);
+            //}
 
             if (removeInferiors)
             {
