@@ -17,7 +17,6 @@ namespace SkillTipsResponseAnalyzer
         [PluginDescription("育成结束时给出评分最大化的技能点法")]
         public string Name => "SkillTipsResponseAnalyzer";
         public string Author => "离披&Github Contributors";
-        public Version Version => new(1, 0, 0, 0);
         public string[] Targets => [];
         private JsonSerializer Serializer { get; } = JsonSerializer.Create(new JsonSerializerSettings { Error = IgnoreDeserializeError });
 
@@ -30,7 +29,7 @@ namespace SkillTipsResponseAnalyzer
             var json = await resp.Content.ReadAsStringAsync();
             var jo = JObject.Parse(json);
 
-            var isLatest = ("v" + Version.ToString()).Equals("v" + jo["tag_name"]?.ToString());
+            var isLatest = ("v" + ((IPlugin)this).Version.ToString()).Equals("v" + jo["tag_name"]?.ToString());
             if (isLatest)
             {
                 progress.Increment(progress.MaxValue);
@@ -296,28 +295,6 @@ namespace SkillTipsResponseAnalyzer
                             .Skip(1) //跳过当前有的最高级的hint
                             .Select(y => y.Id));
                 tips.RemoveAll(x => inferiors.Contains(x.Id)); //只保留最上位技能，下位技能去除
-            }
-
-            //把已买技能和它们的下位去掉
-            foreach (var i in @event.data.chara_info.skill_array)
-            {
-                if (i.skill_id > 1000000 && i.skill_id < 2000000) continue; // 嘉年华&LoH技能
-                var skill = skills[i.skill_id];
-                if (skill == null)
-                {
-                    hasUnknownSkills = true;
-                    AnsiConsole.MarkupLine(I18N_UnknownBoughtSkillAlert, i.skill_id);
-                    continue;
-                }
-                skill.Cost = int.MaxValue;
-                if (skill.Inferior != null)
-                {
-                    do
-                    {
-                        skill = skill.Inferior;
-                        skill.Cost = int.MaxValue;
-                    } while (skill.Inferior != null);
-                }
             }
 
             if (unknownUma)
