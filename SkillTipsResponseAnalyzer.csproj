@@ -5,10 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
+    <Version>2026.3.9</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\UmaAIConnector\UmamusumeResponseAnalyzer\UmamusumeResponseAnalyzer.csproj" />
+    <ProjectReference Include="..\..\UmamusumeResponseAnalyzer\UmamusumeResponseAnalyzer\UmamusumeResponseAnalyzer.csproj" />
     <ProjectReference Include="..\EventLoggerPlugin\EventLoggerPlugin.csproj" />
   </ItemGroup>
 

@@ -214,7 +214,7 @@ namespace SkillTipsResponseAnalyzer
 #warning TODO
             var scenarioSkills = skillmanager.GetSkills().Where(x => x.Upgrades.Any(y => y.IsScenarioEvolution == true)).OrderByDescending(x => x.Upgrades.Max(y => y.Grade));
             var evolvedCount = scenarioSkills.Count(x => x.DisplayName.Contains($"剧本{I18N_Evolved}")); // 剧本进化最多两个，但是可进化的可能更多
-            foreach (var baseSkill in scenarioSkills)
+            foreach (var baseSkill in scenarioSkills.Where(x => !x.DisplayName.Contains($"剧本{I18N_Evolved}")))
             {
                 if (evolvedCount == 2) break; // 剧本进化最多两个
                 var best = baseSkill.Upgrades.Where(x => x.IsScenarioEvolution == true).OrderByDescending(x => x.Grade).First();
@@ -261,6 +261,34 @@ namespace SkillTipsResponseAnalyzer
                 }
                 AnsiConsole.MarkupLine($"[red]{lineToPrint}[/]");
             }
+            //var tipsExistInDatabase = tipsRaw.Where(x => skills[(x.group_id, x.rarity)] != null);//去掉数据库中没有的技能，避免报错
+            //var tips = tipsExistInDatabase
+            //    .SelectMany(x => skills[(x.group_id, x.rarity)])
+            //    .Where(x => x.Rate > 0)
+            //    .ToList();
+
+            //把已买技能和它们的下位去掉
+            foreach (var i in @event.data.chara_info.skill_array)
+            {
+                if (i.skill_id > 1000000 && i.skill_id < 2000000) continue; // 嘉年华&LoH技能
+                var skill = skills[i.skill_id];
+                if (skill == null)
+                {
+                    hasUnknownSkills = true;
+                    AnsiConsole.MarkupLine(I18N_UnknownBoughtSkillAlert, i.skill_id);
+                    continue;
+                }
+                skill.Cost = int.MaxValue;
+                if (skill.Inferior != null)
+                {
+                    do
+                    {
+                        skill = skill.Inferior;
+                        skill.Cost = int.MaxValue;
+                    } while (skill.Inferior != null);
+                }
+            }
+
             var tips = skills.GetSkills();
             //添加天赋技能
             var unknownUma = false;//新出的马娘的天赋技能不在数据库中
@@ -268,15 +296,6 @@ namespace SkillTipsResponseAnalyzer
             {
                 unknownUma = true;
             }
-            //添加上位技能缺少的下位技能（为方便计算切者技能点）
-            //foreach (var group in tips.GroupBy(x => x.GroupId))
-            //{
-            //    var additionalSkills = skills.GetAllByGroupId(group.Key)
-            //        .Where(x => x.Rarity < group.Max(y => y.Rarity) || x.Rate < group.Max(y => y.Rate))
-            //        .Where(x => x.Rate > 0);
-            //    var ids = additionalSkills.ExceptBy(tips.Select(x => x.Id), x => x.Id);
-            //    tips.AddRange(ids);
-            //}
 
             if (removeInferiors)
             {
