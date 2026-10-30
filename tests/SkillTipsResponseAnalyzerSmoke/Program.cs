@@ -28,6 +28,8 @@ using UraSkillData = UmamusumeResponseAnalyzer.Entities.SkillData;
 using UiText = UmamusumeResponseAnalyzer.Localization.TerminalGui;
 using SkillTipsResponseAnalyzer;
 
+RepositoryChecks.Run();
+
 if (args.Length > 1)
     throw new ArgumentException("Expected at most one raw SingleModeRamen CheckEvent or Load response path.");
 
@@ -55,6 +57,7 @@ try
 
     Console.WriteLine("SkillTips UI smoke: starting Host");
     using var ui = new WorkspaceSmokeSession();
+    PluginLifecycleSmoke.Run(ui);
     if (mouseUiOnly)
     {
         await AssertTableMouseInput(ui);
@@ -67,6 +70,7 @@ try
         Console.WriteLine("SkillTips bridge framebuffer smoke passed.");
         return;
     }
+    await SkillPanelSmoke.RunAsync(ui);
     Console.WriteLine("SkillTips UI smoke: settings");
     await AssertSettingsBeforeInitialization(ui);
     Console.WriteLine("SkillTips UI smoke: response dispatch");

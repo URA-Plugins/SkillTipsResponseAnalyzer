@@ -34,6 +34,8 @@ Host-dependent smoke 位于 `tests/SkillTipsResponseAnalyzerSmoke`。
 
 验证尚未发布的宿主 SDK 时，先从匹配的宿主源码生成本地 NuGet 包，通过临时 NuGet 配置精确映射 `UmamusumeResponseAnalyzer` 包来源，并使用独立缓存。将同一组 `-RestoreConfigFile <配置路径> -RestorePackagesPath <缓存目录>` 传给打包脚本；smoke 构建使用对应的 MSBuild 属性和 `UraTestHostRoot`。生产插件保留 NuGet 引用，不引用宿主项目。
 
+默认 smoke 包含本仓发布边界、闲置生命周期、技能名的字面文本显示、警告数量、推荐 workspace 释放及配置、排序、鼠标和 WebSocket 检查。测试工具源码由 `tests/Support/` 持有。
+
 ## 验证与发布
 
 在 Windows 仓库根执行 `act workflow_dispatch --artifact-server-path "$env:TEMP/ura-act-artifacts"`。本地与 GitHub 使用同一份 workflow；版本 tag 触发 GitHub Release 发布。环境要求、共用 workflow 本地映射和发布规则见 [URA plugin workflows](https://github.com/URA-Plugins/.github/blob/v1/README.md)。

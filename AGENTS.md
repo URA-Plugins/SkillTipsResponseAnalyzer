@@ -50,3 +50,5 @@ Use `--bridge-ui` for the focused bridge framebuffer checks or `--mouse-ui` for 
 ## Security Boundary
 
 Treat packet bodies and endpoint DTOs as untrusted input. Fail clearly on incompatible data; do not guess schemas or add silent fallbacks. Do not commit captured packets, local paths, credentials, or generated plugin packages.
+
+测试支持源码保存在本仓 `tests/Support/`；正常 smoke 入口执行 `RepositoryChecks.Run()`，构建时通过 `UraTestHostRoot` 引用与 SDK 匹配的 Host 运行时。
