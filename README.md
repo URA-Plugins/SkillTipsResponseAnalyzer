@@ -38,4 +38,6 @@ Host-dependent smoke 位于 `tests/SkillTipsResponseAnalyzerSmoke`。
 
 ## 验证与发布
 
-在 Windows 仓库根执行 `act workflow_dispatch --artifact-server-path "$env:TEMP/ura-act-artifacts"`。本地与 GitHub 使用同一份 workflow；版本 tag 触发 GitHub Release 发布。环境要求、共用 workflow 本地映射和发布规则见 [URA plugin workflows](https://github.com/URA-Plugins/.github/blob/v1/README.md)。
+在 Windows 仓库根执行 `act workflow_dispatch --artifact-server-path "$env:TEMP/ura-act-artifacts"`。本地与 GitHub 使用同一份 workflow；托管构建、Host 验包与 smoke 由共用 workflow 执行，原生 job 执行 `native/build.ps1` 的 locked Cargo 测试、Release 构建及 x64 PE / `hachimi_init_v3` 导出检查。环境要求和共用 workflow 本地映射见 [URA plugin workflows](https://github.com/URA-Plugins/.github/blob/927fa76bae243fc22cc6fa4e09a0e4754f096abb/README.md)。
+
+版本 tag 必须匹配插件 manifest 版本。两组验证都通过后，同一个 GitHub Release 发布 `SkillTipsResponseAnalyzer.zip`、`skill_tips_bridge.dll` 和包含两者 SHA256 的 `SHA256SUMS.txt`；原生 DLL 不放入 Host 插件 ZIP。下载后可用 `Get-FileHash -Algorithm SHA256 <文件路径>` 与校验文件对照。
