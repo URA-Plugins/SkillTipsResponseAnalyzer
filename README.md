@@ -10,7 +10,7 @@ workspace 中的排序切换只影响当前结果，不写入配置；下一次�
 
 ## Hachimi 技能选择
 
-游戏侧桥接面向 Windows x64 日服及 Hachimi v3，使用 `umamusume-20261026-il2cpp-x64` profile。宿主必须包含 `WebSocketRoute`，对应 SDK 版本为 `2026.10.30`。将托管插件 `SkillTipsResponseAnalyzer.zip` 放入 URA 数据目录的 `Plugins/` 后重启 URA；默认数据目录为 `%LOCALAPPDATA%/UmamusumeResponseAnalyzer`。原生 DLL 独立安装，见 [原生桥接说明](native/README.md)。
+游戏侧桥接面向 Windows x64 日服及 Hachimi v3，使用 `umamusume-20261026-il2cpp-x64` profile。宿主必须包含 `WebSocketRoute`；本版本使用 SDK `2026.10.31.1`。将托管插件 `SkillTipsResponseAnalyzer.zip` 放入 URA 数据目录的 `Plugins/` 后重启 URA；默认数据目录为 `%LOCALAPPDATA%/UmamusumeResponseAnalyzer`。原生 DLL 独立安装，见 [原生桥接说明](native/README.md)。
 
 原生 DLL 读取 `hachimi/httpforward.json` 的 `notifier_host`，在其基础路径后追加 `/SkillTipsResponseAnalyzer/bridge`，通过 URA 现有监听端口建立 WebSocket。仅允许同一台电脑上的原生客户端；配置缺失、地址无效、协议或游戏方法不匹配时明确报错。连接中断后清除高亮及待处理操作，重连重新读取配置并同步快照，不重放选择命令。
 
