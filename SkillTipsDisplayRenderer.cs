@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Collections.Immutable;
 using System.Text;
+using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.Input;
 using Terminal.Gui.Text;
@@ -14,6 +15,7 @@ using static SkillTipsResponseAnalyzer.i18n.ParseSkillTipsResponse;
 namespace SkillTipsResponseAnalyzer;
 
 internal sealed record SkillTipsDisplaySnapshot(
+    SkillTipsTraining Training,
     int Speed,
     int Stamina,
     int Power,
@@ -37,7 +39,7 @@ internal sealed record SkillTipsDisplaySnapshot(
     ImmutableArray<SkillTipsCostEffectiveness> ExpectedCostEffectiveness,
     ImmutableArray<string> Warnings);
 
-internal sealed record SkillTipsDisplaySkill(string Name, int SkillPoints, int Score);
+internal sealed record SkillTipsDisplaySkill(int SkillId, string Name, int SkillPoints, int Score);
 
 internal sealed record SkillTipsCostEffectiveness(int SkillPoints, string Value);
 
@@ -47,8 +49,13 @@ internal static class SkillTipsDisplayRenderer
     const int ScrollBarCellWidth = 1;
     const int FrameBorderCellWidth = 2;
 
-    public static WorkspaceContent Render(SkillTipsDisplaySnapshot display)
-        => new(() => new SkillTipsDashboardView(display));
+    public static WorkspaceContent Render(
+        SkillTipsDisplaySnapshot display,
+        bool sortByCostEffectiveness,
+        SkillTipsBridge bridge,
+        IApplication application,
+        Workspace workspace)
+        => new(() => new SkillTipsDashboardView(display, sortByCostEffectiveness, bridge, application, workspace));
 
     static string[] WrapLines(IEnumerable<string> lines, int width)
         => [.. lines.SelectMany(line => line.Length == 0
@@ -58,14 +65,34 @@ internal static class SkillTipsDisplayRenderer
     sealed class SkillTipsDashboardView : View
     {
         readonly FrameView skills;
+        readonly OptionSelector sort;
         readonly SkillTipsTableView table;
         readonly SkillTipsDetailsView details;
+        readonly Button selectRecommended;
+        readonly SkillTipsDisplaySnapshot display;
+        readonly SkillTipsBridge bridge;
+        readonly IApplication application;
+        readonly Workspace workspace;
+        readonly CancellationTokenSource lifetime = new();
         readonly int requiredSkillsWidth;
+        bool disposed;
+        bool selecting;
+        int unlockPosition;
+        string? lastBridgeError;
         Size lastFrameSize;
         bool? lastWide;
 
-        public SkillTipsDashboardView(SkillTipsDisplaySnapshot display)
+        public SkillTipsDashboardView(
+            SkillTipsDisplaySnapshot display,
+            bool sortByCostEffectiveness,
+            SkillTipsBridge bridge,
+            IApplication application,
+            Workspace workspace)
         {
+            this.display = display;
+            this.bridge = bridge;
+            this.application = application;
+            this.workspace = workspace;
             Id = "skill-tips-root";
             Width = Dim.Fill();
             Height = Dim.Fill();
@@ -75,6 +102,18 @@ internal static class SkillTipsDisplayRenderer
             SetScheme(SkillTipsPalette.BaseScheme);
 
             (table, requiredSkillsWidth) = CreateSkillTable(display.Skills);
+            sort = new()
+            {
+                Id = "skill-tips-sort",
+                Labels = [I18N_DefaultSort, I18N_CostEffectivenessSort],
+                Orientation = Orientation.Horizontal,
+                TabBehavior = TabBehavior.NoStop, // Tab 切换区域，方向键在排序选项间移动。
+                Value = sortByCostEffectiveness ? 1 : 0,
+                Width = Dim.Auto(),
+                Height = 1
+            };
+            sort.SetScheme(SkillTipsPalette.BaseScheme);
+            table.Y = 1;
             skills = new FrameView
             {
                 Id = "skill-tips-skills",
@@ -84,16 +123,59 @@ internal static class SkillTipsDisplayRenderer
                 TabStop = TabBehavior.NoStop
             };
             skills.SetScheme(SkillTipsPalette.BaseScheme);
-            skills.Add(table);
+            selectRecommended = new()
+            {
+                Id = "skill-tips-select-recommended",
+                Text = I18N_SelectRecommended,
+                Y = Pos.AnchorEnd(),
+                Visible = false,
+                IsDefault = false
+            };
+            selectRecommended.SetScheme(SkillTipsPalette.BaseScheme);
+            selectRecommended.Accepting += async (_, e) =>
+            {
+                e.Handled = true;
+                await SelectRecommendedAsync();
+            };
+            selectRecommended.HasFocusChanged += (_, _) =>
+            {
+                if (selectRecommended.HasFocus)
+                {
+                    HorizontalScrollBar.Value = 0;
+                    RevealVertically(skills.Frame.Bottom - 1 - selectRecommended.Frame.Height);
+                }
+            };
+            skills.Add(sort, table, selectRecommended);
 
             details = new(display)
             {
                 Id = "skill-tips-details"
             };
+            selectRecommended.KeyDown += (_, key) =>
+            {
+                if (key == Key.Tab)
+                    key.Handled = details.CostEffectiveness.SetFocus();
+                else if (key == Key.Tab.WithShift)
+                    key.Handled = table.Body.SetFocus();
+            };
             table.NextFocus = details.CostEffectiveness;
-            table.PreviousFocus = details.CostEffectiveness;
-            details.CostEffectiveness.NextFocus = table.Body;
+            table.PreviousFocus = sort;
+            details.CostEffectiveness.NextFocus = sort;
             details.CostEffectiveness.PreviousFocus = table.Body;
+            sort.KeyDown += (_, key) =>
+            {
+                if (key == Key.Tab)
+                    key.Handled = table.Body.SetFocus();
+                else if (key == Key.Tab.WithShift)
+                    key.Handled = details.CostEffectiveness.SetFocus();
+            };
+            sort.ValueChanged += (_, _) => UpdateSort();
+            UpdateSort();
+            sort.HasFocusChanged += (_, _) =>
+            {
+                if (sort.HasFocus)
+                    RevealVertically(skills.Frame.Y);
+            };
             table.Body.HasFocusChanged += (_, _) =>
             {
                 if (table.Body.HasFocus)
@@ -105,6 +187,213 @@ internal static class SkillTipsDisplayRenderer
                     RevealVertically(details.Frame.Y + details.CostEffectiveness.Frame.Y);
             };
             Add(skills, details);
+            HasFocusChanged += (_, _) =>
+            {
+                if (!HasFocus)
+                    unlockPosition = 0;
+            };
+            bridge.Changed += BridgeChanged;
+            application.Keyboard.KeyDown += ApplicationKeyDown;
+            UpdateBridgeState(bridge.Current, bridge.LastError, false);
+
+            void UpdateSort() => table.SetRows(sort.Value == 1
+                ? display.Skills.OrderByDescending(row => (double)row.Score / row.SkillPoints)
+                : display.Skills);
+        }
+
+        void BridgeChanged()
+        {
+            if (disposed)
+                return;
+            var state = bridge.Current;
+            var error = bridge.LastError;
+            application.Invoke(() =>
+            {
+                if (!disposed)
+                    UpdateBridgeState(state, error, true);
+            });
+        }
+
+        void UpdateBridgeState(SkillTipsBridgeState? state, string? connectionError, bool allowScroll)
+        {
+            var error = connectionError ?? state?.Error;
+            if (!selecting && !string.IsNullOrEmpty(error) && error != lastBridgeError)
+                workspace.Notify(string.Format(I18N_BridgeError, error), UiSeverity.Warning);
+            lastBridgeError = error;
+            var matches = connectionError is null && state is { Active: true, Error: null, Training: not null }
+                && display.Training.Matches(state.Training);
+            table.Body.SetSelectedSkills(matches ? state!.SelectedSkillIds : [],
+                allowScroll && matches && state!.SelectionEvent && IsCurrentView());
+            selectRecommended.Enabled = matches && !selecting && !display.Skills.IsEmpty;
+            table.NextFocus = selectRecommended.Visible && selectRecommended.Enabled
+                ? selectRecommended : details.CostEffectiveness;
+            details.CostEffectiveness.PreviousFocus = selectRecommended.Visible && selectRecommended.Enabled
+                ? selectRecommended : table.Body;
+        }
+
+        bool IsCurrentView()
+        {
+            if (!ReferenceEquals(Workspace.Current, workspace))
+                return false;
+            for (View? ancestor = this; ancestor is not null; ancestor = ancestor.SuperView)
+                if (ReferenceEquals(ancestor, application.TopRunnableView))
+                    return true;
+            return false;
+        }
+
+        void ApplicationKeyDown(object? sender, Key key)
+        {
+            if (disposed || selectRecommended.Visible)
+                return;
+            if (key.Handled || key.IsCtrl || key.IsAlt || key.IsShift || !IsCurrentView())
+            {
+                unlockPosition = 0;
+                return;
+            }
+#pragma warning disable CS0618
+            if (application.TopRunnableView?.MostFocused is TextField or TextView { ReadOnly: false })
+#pragma warning restore CS0618
+            {
+                unlockPosition = 0;
+                return;
+            }
+            const string unlock = "thisisunsafe";
+            var character = key.AsRune.Value;
+            unlockPosition = character == unlock[unlockPosition]
+                ? unlockPosition + 1 : character == unlock[0] ? 1 : 0;
+            if (unlockPosition != unlock.Length)
+                return;
+            selectRecommended.Visible = true;
+            table.Height = Dim.Fill(selectRecommended.GetAutoHeight());
+            UpdateBridgeState(bridge.Current, bridge.LastError, false);
+            SetNeedsLayout();
+            SetNeedsDraw();
+        }
+
+        async Task SelectRecommendedAsync()
+        {
+            if (disposed || selecting || !selectRecommended.Visible || !selectRecommended.Enabled || !IsCurrentView())
+                return;
+            var cancellationToken = lifetime.Token;
+            selecting = true;
+            UpdateBridgeState(bridge.Current, bridge.LastError, false);
+            try
+            {
+                var prepared = await bridge.PrepareAsync(display.Training,
+                    [.. display.Skills.Select(row => row.SkillId)], cancellationToken).ConfigureAwait(false);
+                var accepted = false;
+                await InvokeAsync(() =>
+                {
+                    accepted = IsCurrentView();
+                }).ConfigureAwait(false);
+                if (accepted && prepared.ExtraSkillIds.Length != 0)
+                    accepted = await SkillTipsDialogs.RunAsync(application,
+                        () => !disposed && IsCurrentView() && ConfirmReplacement(prepared.ExtraSkillIds),
+                        cancellationToken).ConfigureAwait(false);
+                if (accepted)
+                    await bridge.ReplaceAsync(prepared, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (IsCurrentView())
+                        workspace.Notify(string.Format(I18N_SelectionFailed, ex.Message), UiSeverity.Error);
+                }).ConfigureAwait(false);
+            }
+            finally
+            {
+                await InvokeAsync(() =>
+                {
+                    selecting = false;
+                    UpdateBridgeState(bridge.Current, bridge.LastError, false);
+                }).ConfigureAwait(false);
+            }
+        }
+
+        Task InvokeAsync(Action action)
+        {
+            if (disposed)
+                return Task.CompletedTask;
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            application.Invoke(() =>
+            {
+                if (disposed)
+                {
+                    completion.TrySetResult();
+                    return;
+                }
+                try
+                {
+                    action();
+                    completion.TrySetResult();
+                }
+                catch (Exception ex) { completion.TrySetException(ex); }
+            });
+            return completion.Task;
+        }
+
+        bool ConfirmReplacement(int[] extraSkillIds)
+        {
+            using var dialog = new Dialog
+            {
+                Id = "skill-tips-confirm-replace",
+                Title = I18N_ReplaceSelection,
+                Width = Dim.Percent(85),
+                Height = Dim.Percent(50)
+            };
+#pragma warning disable CS0618
+            dialog.Add(new TextView
+            {
+                ReadOnly = true,
+                WordWrap = true,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(1),
+                Text = string.Format(I18N_ReplaceSelectionPrompt, string.Join(", ", extraSkillIds))
+            });
+#pragma warning restore CS0618
+            var accepted = false;
+            var replace = new Button { Id = "skill-tips-replace", Text = I18N_ReplaceSelection };
+            replace.Accepting += (_, e) =>
+            {
+                accepted = true;
+                e.Handled = true;
+                application.RequestStop(dialog);
+            };
+            var cancel = new Button { Id = "skill-tips-cancel-replace", Text = I18N_Cancel, IsDefault = true };
+            cancel.Accepting += (_, e) =>
+            {
+                e.Handled = true;
+                application.RequestStop(dialog);
+            };
+            dialog.AddButton(replace);
+            dialog.AddButton(cancel);
+            var cancellationToken = lifetime.Token;
+            var closed = false;
+            using (cancellationToken.Register(() => application.Invoke(() =>
+            {
+                if (!closed)
+                    application.RequestStop(dialog);
+            })))
+            {
+                try { application.Run(dialog); }
+                finally { closed = true; }
+            }
+            return accepted && !cancellationToken.IsCancellationRequested;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && !disposed)
+            {
+                disposed = true;
+                bridge.Changed -= BridgeChanged;
+                application.Keyboard.KeyDown -= ApplicationKeyDown;
+                lifetime.Cancel();
+                lifetime.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         protected override void OnSubViewLayout(LayoutEventArgs args)
@@ -112,9 +401,12 @@ internal static class SkillTipsDisplayRenderer
             var frameWidth = Math.Max(0, Frame.Width);
             var frameHeight = Math.Max(0, Frame.Height);
             var gap = frameWidth == 0 ? 0 : 1;
-            var wideDetailsWidth = Math.Max(1, frameWidth - requiredSkillsWidth - gap);
+            var requiredSortWidth = Math.Max(sort.GetAutoWidth(),
+                selectRecommended.Visible ? selectRecommended.GetAutoWidth() : 0) + FrameBorderCellWidth;
+            var skillsWidth = Math.Max(requiredSkillsWidth, requiredSortWidth);
+            var wideDetailsWidth = Math.Max(1, frameWidth - skillsWidth - gap);
             var wide =
-                frameWidth >= requiredSkillsWidth + gap + details.PreferredWidth
+                frameWidth >= skillsWidth + gap + details.PreferredWidth
                 && frameHeight >= details.GetMinimumHeight(wideDetailsWidth);
             var revealFocusedRegion = lastFrameSize != Frame.Size || lastWide != wide;
             var viewportSettings = wide
@@ -128,9 +420,9 @@ internal static class SkillTipsDisplayRenderer
             {
                 contentWidth = frameWidth;
                 contentHeight = frameHeight;
-                skills.Frame = new(0, 0, requiredSkillsWidth, contentHeight);
+                skills.Frame = new(0, 0, skillsWidth, contentHeight);
                 details.Frame = new(
-                    requiredSkillsWidth + gap,
+                    skillsWidth + gap,
                     0,
                     wideDetailsWidth,
                     contentHeight);
@@ -143,14 +435,14 @@ internal static class SkillTipsDisplayRenderer
                 contentWidth = Math.Max(
                     viewportWidthWithVerticalScrollBar,
                     Math.Max(
-                        I18N_RecommendedSkills.GetColumns() + 4,
+                        Math.Max(I18N_RecommendedSkills.GetColumns() + 4, requiredSortWidth),
                         details.MinimumAccessibleWidth));
                 var horizontalScrollBarHeight =
                     contentWidth > viewportWidthWithVerticalScrollBar
                         ? ScrollBarCellWidth
                         : 0;
                 var visibleHeight = Math.Max(1, frameHeight - horizontalScrollBarHeight);
-                var skillsHeight = Math.Max(8, visibleHeight / 2);
+                var skillsHeight = Math.Max(selectRecommended.Visible ? 9 : 8, visibleHeight / 2);
                 var detailsHeight = Math.Max(
                     details.GetMinimumHeight(contentWidth),
                     visibleHeight - skillsHeight - gap);
@@ -173,8 +465,13 @@ internal static class SkillTipsDisplayRenderer
             base.OnSubViewLayout(args);
             if (revealFocusedRegion)
             {
-                if (table.Body.HasFocus)
+                if (sort.HasFocus || table.Body.HasFocus)
                     RevealVertically(skills.Frame.Y);
+                else if (selectRecommended.HasFocus)
+                {
+                    HorizontalScrollBar.Value = 0;
+                    RevealVertically(skills.Frame.Bottom - 1 - selectRecommended.Frame.Height);
+                }
                 else if (details.CostEffectiveness.HasFocus)
                     RevealVertically(details.Frame.Y + details.CostEffectiveness.Frame.Y);
             }
@@ -226,6 +523,7 @@ internal static class SkillTipsDisplayRenderer
     {
         readonly TextView header;
         readonly int contentWidth;
+        readonly IReadOnlyList<int> columnWidths;
 
         public SkillTipsTableView(
             IReadOnlyList<SkillTipsDisplaySkill> rows,
@@ -234,6 +532,7 @@ internal static class SkillTipsDisplayRenderer
             CanFocus = true;
             TabStop = TabBehavior.NoStop;
             SetScheme(SkillTipsPalette.BaseScheme);
+            this.columnWidths = columnWidths;
             contentWidth = columnWidths.Sum() + columnWidths.Count + 1;
 
             header = new()
@@ -255,17 +554,23 @@ internal static class SkillTipsDisplayRenderer
                     $"┼{new string('─', columnWidths[2])}┤")
             };
             header.SetScheme(SkillTipsPalette.BaseScheme);
-            Body = new(
-                [.. rows.Select(row => FormatRow(
-                    row.Name,
-                    row.SkillPoints.ToString(),
-                    row.Score.ToString(),
-                    columnWidths))],
-                header);
+            Body = new([], header);
+            SetRows(rows);
             Add(header, Body);
         }
 
         public SkillTipsTableBody Body { get; }
+
+        public void SetRows(IEnumerable<SkillTipsDisplaySkill> rows)
+        {
+            Body.Rows = [.. rows];
+            Body.Text = string.Join(Environment.NewLine, Body.Rows.Select(row => FormatRow(
+                row.Name,
+                row.SkillPoints.ToString(),
+                row.Score.ToString(),
+                columnWidths)));
+        }
+
         public View? NextFocus
         {
             get => Body.NextFocus;
@@ -315,6 +620,9 @@ internal static class SkillTipsDisplayRenderer
     sealed class SkillTipsTableBody : TextView
     {
         readonly TextView header;
+        HashSet<int> selectedSkillIds = [];
+
+        public SkillTipsDisplaySkill[] Rows { get; set; } = [];
 
         public SkillTipsTableBody(string[] rows, TextView header)
         {
@@ -332,6 +640,39 @@ internal static class SkillTipsDisplayRenderer
         public View? NextFocus { get; set; }
         public View? PreviousFocus { get; set; }
 
+        public void SetSelectedSkills(int[] skillIds, bool autoScroll)
+        {
+            if (selectedSkillIds.SetEquals(skillIds))
+                return;
+            var previous = selectedSkillIds;
+            selectedSkillIds = [.. skillIds];
+            SetNeedsDraw();
+            if (!autoScroll)
+                return;
+            var screen = ViewportToScreen();
+            var visible = screen;
+            for (var ancestor = SuperView; ancestor is not null; ancestor = ancestor.SuperView)
+                visible.Intersect(ancestor.ViewportToScreen());
+            if (visible.Width <= 0 || visible.Height <= 0)
+                return;
+            var first = Viewport.Y + visible.Top - screen.Top;
+            var count = Math.Min(visible.Height, Rows.Length - first);
+            if (count <= 0)
+                return;
+            var threshold = (count * 3 + 3) / 4;
+            var prefix = Rows.Skip(first).Take(threshold);
+            if (prefix.All(row => selectedSkillIds.Contains(row.SkillId))
+                && prefix.Any(row => !previous.Contains(row.SkillId)))
+                ScrollTo(new(Viewport.X, Math.Min(Viewport.Y + threshold, Math.Max(0, Rows.Length - Viewport.Height))));
+        }
+
+        protected override void OnDrawReadOnlyColor(List<Cell> line, int idxCol, int idxRow)
+        {
+            base.OnDrawReadOnlyColor(line, idxCol, idxRow);
+            if (idxRow < Rows.Length && selectedSkillIds.Contains(Rows[idxRow].SkillId))
+                SetAttribute(SkillTipsPalette.Selected);
+        }
+
         protected override bool OnMouseEvent(Mouse mouse)
         {
             if (mouse.Flags.HasFlag(MouseFlags.WheeledRight))
@@ -342,9 +683,11 @@ internal static class SkillTipsDisplayRenderer
                 VerticalScrollBar.Value += VerticalScrollBar.Increment;
             else if (mouse.Flags.HasFlag(MouseFlags.WheeledUp))
                 VerticalScrollBar.Value -= VerticalScrollBar.Increment;
-            else
-                return base.OnMouseEvent(mouse);
+            else if ((mouse.Flags & (MouseFlags.LeftButtonPressed | MouseFlags.LeftButtonReleased
+                | MouseFlags.LeftButtonClicked | MouseFlags.LeftButtonDoubleClicked | MouseFlags.LeftButtonTripleClicked)) == 0)
+                return false;
 
+            // This read-only table handles focus, not TextView's glyph-based editor hit testing.
             SetFocus();
             return true;
         }
@@ -862,6 +1205,7 @@ internal static class SkillTipsDisplayRenderer
             new TColor(StandardColor.Gray),
             TColor.Black,
             HostNormal.Style);
+        public static TAttribute Selected { get; } = new(new TColor(StandardColor.BrightGreen), TColor.Black);
 
         public static Scheme BaseScheme { get; } = new()
         {

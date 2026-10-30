@@ -249,4 +249,68 @@
   <data name="I18N_PredictedRank" xml:space="preserve">
     <value>预测等级</value>
   </data>
+  <data name="I18N_DefaultSort" xml:space="preserve">
+    <value>默认排序</value>
+  </data>
+  <data name="I18N_CostEffectivenessSort" xml:space="preserve">
+    <value>按性价比排序</value>
+  </data>
+  <data name="I18N_SettingsTitle" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer 设置</value>
+  </data>
+  <data name="I18N_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="I18N_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="I18N_SettingsCanceled" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer 设置已取消。</value>
+  </data>
+  <data name="I18N_SettingsNoUiSession" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer 无法从非 UI 线程打开设置：Terminal.Gui 当前没有正在运行的会话。</value>
+  </data>
+  <data name="I18N_SettingsObjectRequired" xml:space="preserve">
+    <value>配置必须是 JSON 对象。</value>
+  </data>
+  <data name="I18N_InvalidSettings" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer 配置文件无效：{0}。{1}</value>
+  </data>
+  <data name="I18N_SettingsSortNotSelected" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer 排序方式未选择。</value>
+  </data>
+  <data name="I18N_SelectRecommended" xml:space="preserve">
+    <value>选择全部推荐技能</value>
+  </data>
+  <data name="I18N_ReplaceSelection" xml:space="preserve">
+    <value>替换待学习选择</value>
+  </data>
+  <data name="I18N_ReplaceSelectionPrompt" xml:space="preserve">
+    <value>当前待学习选择包含推荐方案外的技能：{0}。
+是否替换为推荐技能？此操作仅选择技能，不执行学习。</value>
+  </data>
+  <data name="I18N_SelectionFailed" xml:space="preserve">
+    <value>技能选择失败：{0}</value>
+  </data>
+  <data name="I18N_BridgeError" xml:space="preserve">
+    <value>技能选择桥接错误：{0}</value>
+  </data>
+  <data name="I18N_BridgeTimeout" xml:space="preserve">
+    <value>未确认完成，不自动重试。请重新检查游戏中的待学习技能。</value>
+  </data>
+  <data name="I18N_BridgeLocalOnly" xml:space="preserve">
+    <value>仅接受本机原生桥接连接。</value>
+  </data>
+  <data name="I18N_BridgeConnectionRejected" xml:space="preserve">
+    <value>已有桥接连接，或插件正在停止。</value>
+  </data>
+  <data name="I18N_BridgeDisconnected" xml:space="preserve">
+    <value>与游戏的 WebSocket 连接已断开。</value>
+  </data>
+  <data name="I18N_BridgeTextRequired" xml:space="preserve">
+    <value>技能桥接只接受 WebSocket 文本消息。</value>
+  </data>
+  <data name="I18N_BridgeMessageTooLarge" xml:space="preserve">
+    <value>技能桥接消息超过 {0} 个 UTF-8 字节。</value>
+  </data>
 </root>

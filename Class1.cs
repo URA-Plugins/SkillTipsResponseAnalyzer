@@ -2,6 +2,9 @@ using UmamusumeResponseAnalyzer;
 using UmamusumeResponseAnalyzer.Entities;
 using UmamusumeResponseAnalyzer.TerminalGui;
 using UmamusumeResponseAnalyzer.Plugin;
+using Terminal.Gui.App;
+using System.Net.WebSockets;
+using WatsonWebserver.Core;
 using static SkillTipsResponseAnalyzer.i18n.ParseSkillTipsResponse;
 
 namespace SkillTipsResponseAnalyzer
@@ -11,10 +14,15 @@ namespace SkillTipsResponseAnalyzer
         const string WorkspaceTitle = "SkillTipsResponseAnalyzer";
 
         readonly object trainingGate = new();
+        readonly SkillTipsBridge bridge = new();
+        SkillTipsSettings settings = new();
+        IPluginContext context = null!;
         Workspace? workspace;
 
         public void Initialize(IPluginContext context)
         {
+            this.context = context;
+            settings = SkillTipsSettings.Load();
             context.Analyzers.Register<Gallop.SingleModeCheckEventResponse>(
                 AnalyzerKind.Response,
                 [EndpointPattern.Wildcard("/umamusume/single_mode*/check_event")],
@@ -33,10 +41,25 @@ namespace SkillTipsResponseAnalyzer
                 _ => AnalyzeFinish());
         }
 
-        public ValueTask DisposeAsync()
+        public async Task ConfigPromptAsync(IApplication application, CancellationToken cancellationToken = default)
+        {
+            var saved = await SkillTipsSettings.PromptAsync(application, cancellationToken);
+            lock (trainingGate)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                saved.Save();
+                settings = saved;
+            }
+        }
+
+        [WebSocketRoute("bridge")]
+        Task ConnectBridgeAsync(HttpContextBase httpContext, WebSocket socket, CancellationToken cancellationToken)
+            => bridge.AcceptAsync(httpContext, socket, cancellationToken);
+
+        public async ValueTask DisposeAsync()
         {
             RemoveWorkspace();
-            return ValueTask.CompletedTask;
+            await bridge.DisposeAsync().ConfigureAwait(false);
         }
 
         ValueTask Analyze(
@@ -61,7 +84,7 @@ namespace SkillTipsResponseAnalyzer
                 workspace.SetPanel(
                     "skill-plan",
                     "技能评分建议",
-                    SkillTipsDisplayRenderer.Render(display),
+                    SkillTipsDisplayRenderer.Render(display, settings.SortByCostEffectiveness, bridge, context.Application, workspace),
                     fullBleed: true);
                 if (display.Warnings.Length != 0)
                 {
@@ -175,6 +198,13 @@ namespace SkillTipsResponseAnalyzer
             }
 
             return new(
+                new SkillTipsTraining(
+                    @event.data.chara_info.single_mode_chara_id,
+                    @event.data.chara_info.start_time,
+                    @event.data.chara_info.turn,
+                    totalSP0,
+                    [.. @event.data.chara_info.skill_array.OrderBy(x => x.skill_id)
+                        .Select(x => new SkillTipsLearnedSkill(x.skill_id, x.level))]),
                 @event.data.chara_info.speed,
                 @event.data.chara_info.stamina,
                 @event.data.chara_info.power,
@@ -183,7 +213,7 @@ namespace SkillTipsResponseAnalyzer
                 totalSP0,
                 totalSP0 - totalSP,
                 totalSP,
-                [.. learn.Select(x => new SkillTipsDisplaySkill(x.DisplayName, x.Cost, x.Grade))],
+                [.. learn.Select(x => new SkillTipsDisplaySkill(x.Id, x.DisplayName, x.Cost, x.Grade))],
                 previousLearnPoint,
                 willLearnPoint,
                 statusPoint,

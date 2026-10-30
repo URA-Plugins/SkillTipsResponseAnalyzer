@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>2026.9.26</Version>
+    <Version>2026.10.30.2</Version>
 
     <!-- URA 插件元数据 -->
     <PluginInternalName>SkillTipsResponseAnalyzer</PluginInternalName>
@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SkillTipsResponseAnalyzerSmoke" />
     <PackageReference Include="UmamusumeResponseAnalyzer" Version="*" PrivateAssets="all" />
   </ItemGroup>
 

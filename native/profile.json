@@ -1,0 +1,178 @@
+{
+  "profile": "umamusume-20261026-il2cpp-x64",
+  "game_version": "2.32.0",
+  "unity_version": "2022.3.62f2",
+  "methods": [
+    {
+      "key": "model_ctor",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningModel",
+      "name": ".ctor",
+      "argc": 0,
+      "rva": 75479696,
+      "prologue": "48895c2408574883ec20803d69115106"
+    },
+    {
+      "key": "select",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningModel",
+      "name": "Select",
+      "argc": 1,
+      "rva": 75477856,
+      "prologue": "48895c241048896c2418564883ec2080"
+    },
+    {
+      "key": "deselect",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningModel",
+      "name": "Deselect",
+      "argc": 1,
+      "rva": 75475712,
+      "prologue": "48895c241048896c2418564883ec2080"
+    },
+    {
+      "key": "reset",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningModel",
+      "name": "ResetSelected",
+      "argc": 0,
+      "rva": 75477776,
+      "prologue": "40534883ec20803df418510600488bd9"
+    },
+    {
+      "key": "remaining",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningModel",
+      "name": "get_RemainingPoint",
+      "argc": 0,
+      "rva": 75479920,
+      "prologue": "40564883ec40803d8f10510600488bf1"
+    },
+    {
+      "key": "sort",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningModel",
+      "name": "ApplySortFilter",
+      "argc": 2,
+      "rva": 75472496,
+      "prologue": "48895c240848896c2410488974241848"
+    },
+    {
+      "key": "begin",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningViewController",
+      "name": "BeginView",
+      "argc": 0,
+      "rva": 75591328,
+      "prologue": "40554883ec20803d8c5d4f0600488be9"
+    },
+    {
+      "key": "out",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningViewController",
+      "name": "PlayOutView",
+      "argc": 0,
+      "rva": 75597040,
+      "prologue": "48895c2408574883ec20803d3f474f06"
+    },
+    {
+      "key": "update",
+      "namespace": "Gallop",
+      "class": "SingleModeSkillLearningViewController",
+      "name": "OnSelectUpdate",
+      "argc": 0,
+      "rva": 75596416,
+      "prologue": "48895c2410574883ec20488b4118488b"
+    },
+    {
+      "key": "current_view",
+      "namespace": "Gallop",
+      "class": "SceneManager",
+      "name": "GetCurrentViewController",
+      "argc": 0,
+      "rva": 4755808,
+      "prologue": "488b4138c3cccccccccccccccccccccc"
+    },
+    {
+      "key": "transition",
+      "namespace": "Gallop",
+      "class": "SceneManager",
+      "name": "get_IsRunChangeView",
+      "argc": 0,
+      "rva": 6626176,
+      "prologue": "0fb64160c3cccccccccccccccccccccc"
+    },
+    {
+      "key": "chara_id",
+      "namespace": "Gallop",
+      "class": "WorkSingleModeCharaData",
+      "name": "get_Id",
+      "argc": 0,
+      "rva": 89136768,
+      "prologue": "40534883ec40803de41f810500488bd9"
+    },
+    {
+      "key": "start_time",
+      "namespace": "Gallop",
+      "class": "WorkSingleModeCharaData",
+      "name": "get_StartTime",
+      "argc": 0,
+      "rva": 89139136,
+      "prologue": "40534883ec20803dbf16810500488bd9"
+    },
+    {
+      "key": "points",
+      "namespace": "Gallop",
+      "class": "WorkSingleModeCharaData",
+      "name": "get_SkillPoint",
+      "argc": 0,
+      "rva": 89138880,
+      "prologue": "8b82d00200000f1082c00200000f1101"
+    },
+    {
+      "key": "turn",
+      "namespace": "Gallop",
+      "class": "WorkSingleModeData",
+      "name": "GetCurrentTurn",
+      "argc": 0,
+      "rva": 88915520,
+      "prologue": "40534883ec40803d7e7e840500488bd9"
+    },
+    {
+      "key": "learned_id",
+      "namespace": "Gallop",
+      "class": "WorkSkillData/SkillDataBase",
+      "name": "get_MasterId",
+      "argc": 0,
+      "rva": 89987440,
+      "prologue": "40534883ec40803d742e740500488bd9"
+    },
+    {
+      "key": "learned_level",
+      "namespace": "Gallop",
+      "class": "WorkSkillData/SkillDataBase",
+      "name": "get_Level",
+      "argc": 0,
+      "rva": 89987056,
+      "prologue": "40534883ec40803df52f740500488bd9"
+    },
+    {
+      "key": "unbox_int",
+      "namespace": "CodeStage.AntiCheat.ObscuredTypes",
+      "class": "ObscuredInt",
+      "name": "op_Implicit",
+      "argc": 1,
+      "rva": 33930992,
+      "prologue": "40534883ec20803d55ccc90800488bd9"
+    },
+    {
+      "key": "scene_transition",
+      "namespace": "Gallop",
+      "class": "SceneManager",
+      "name": "get_IsRunChangeScene",
+      "argc": 0,
+      "rva": 8214432,
+      "prologue": "0fb64170c3cccccccccccccccccccccc"
+    }
+  ]
+}

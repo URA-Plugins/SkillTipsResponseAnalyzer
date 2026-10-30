@@ -249,4 +249,68 @@
   <data name="I18N_PredictedRank" xml:space="preserve">
     <value>予測ランク</value>
   </data>
+  <data name="I18N_DefaultSort" xml:space="preserve">
+    <value>既定の順序</value>
+  </data>
+  <data name="I18N_CostEffectivenessSort" xml:space="preserve">
+    <value>コストパフォーマンス順</value>
+  </data>
+  <data name="I18N_SettingsTitle" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer 設定</value>
+  </data>
+  <data name="I18N_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="I18N_Cancel" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="I18N_SettingsCanceled" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer の設定がキャンセルされました。</value>
+  </data>
+  <data name="I18N_SettingsNoUiSession" xml:space="preserve">
+    <value>Terminal.Gui のセッションが実行されていないため、UI スレッド以外から SkillTipsResponseAnalyzer の設定を開けません。</value>
+  </data>
+  <data name="I18N_SettingsObjectRequired" xml:space="preserve">
+    <value>設定は JSON オブジェクトである必要があります。</value>
+  </data>
+  <data name="I18N_InvalidSettings" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer の設定ファイルが無効です：{0}。{1}</value>
+  </data>
+  <data name="I18N_SettingsSortNotSelected" xml:space="preserve">
+    <value>SkillTipsResponseAnalyzer の並べ替え方法が選択されていません。</value>
+  </data>
+  <data name="I18N_SelectRecommended" xml:space="preserve">
+    <value>推奨スキルをすべて選択</value>
+  </data>
+  <data name="I18N_ReplaceSelection" xml:space="preserve">
+    <value>選択を置き換える</value>
+  </data>
+  <data name="I18N_ReplaceSelectionPrompt" xml:space="preserve">
+    <value>現在の習得予定には推奨外のスキルが含まれています：{0}。
+推奨スキルの選択に置き換えますか？スキルの習得は実行しません。</value>
+  </data>
+  <data name="I18N_SelectionFailed" xml:space="preserve">
+    <value>スキルの選択に失敗しました：{0}</value>
+  </data>
+  <data name="I18N_BridgeError" xml:space="preserve">
+    <value>スキル選択ブリッジのエラー：{0}</value>
+  </data>
+  <data name="I18N_BridgeTimeout" xml:space="preserve">
+    <value>完了を確認できませんでした。自動で再試行しません。ゲーム内の習得予定スキルを確認してください。</value>
+  </data>
+  <data name="I18N_BridgeLocalOnly" xml:space="preserve">
+    <value>同じPCのネイティブブリッジのみ接続できます。</value>
+  </data>
+  <data name="I18N_BridgeConnectionRejected" xml:space="preserve">
+    <value>接続済み、またはプラグインが停止中です。</value>
+  </data>
+  <data name="I18N_BridgeDisconnected" xml:space="preserve">
+    <value>ゲームとの WebSocket 接続が切断されました。</value>
+  </data>
+  <data name="I18N_BridgeTextRequired" xml:space="preserve">
+    <value>スキルブリッジは WebSocket テキストメッセージのみ受信できます。</value>
+  </data>
+  <data name="I18N_BridgeMessageTooLarge" xml:space="preserve">
+    <value>スキルブリッジのメッセージが UTF-8 で {0} バイトを超えています。</value>
+  </data>
 </root>
