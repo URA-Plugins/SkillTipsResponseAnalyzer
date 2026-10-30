@@ -28,16 +28,12 @@ workspace 中的排序切换只影响当前结果，不写入配置；下一次�
 dotnet build .\SkillTipsResponseAnalyzer.csproj -c Release -m:1 -p:RuntimeIdentifier=win-x64 -p:SelfContained=false -p:PlatformTarget=AnyCPU -p:GenerateUraPluginManifestOnBuild=false -p:PackageUraPluginOnBuild=false -p:DeployUraPluginToLocalAppDataOnBuild=false
 ```
 
-Host-dependent smoke 位于 `tests/SkillTipsResponseAnalyzerSmoke`。
-
 运行 `pwsh -File .\package.ps1` 构建 Release 产物，直接在 `artifacts/` 输出 `SkillTipsResponseAnalyzer.zip`、相邻的 `skill_tips_bridge.dll` 和 `SHA256SUMS.txt`，覆盖同名构建产物。原生构建需要 Rust 的 `x86_64-pc-windows-msvc` 工具链及 Visual Studio C++ Build Tools。如果游戏直接加载该目录中的 DLL，须先退出游戏。该脚本不修改安装目录或 Hachimi 配置。
 
-验证尚未发布的宿主 SDK 时，先从匹配的宿主源码生成本地 NuGet 包，通过临时 NuGet 配置精确映射 `UmamusumeResponseAnalyzer` 包来源，并使用独立缓存。将同一组 `-RestoreConfigFile <配置路径> -RestorePackagesPath <缓存目录>` 传给打包脚本；smoke 构建使用对应的 MSBuild 属性和 `UraTestHostRoot`。生产插件保留 NuGet 引用，不引用宿主项目。
-
-默认 smoke 包含本仓发布边界、闲置生命周期、技能名的字面文本显示、警告数量、推荐 workspace 释放及配置、排序、鼠标和 WebSocket 检查。测试工具源码由 `tests/Support/` 持有。
+验证尚未发布的宿主 SDK 时，先从匹配的宿主源码生成本地 NuGet 包，通过临时 NuGet 配置精确映射 `UmamusumeResponseAnalyzer` 包来源，并使用独立缓存。将同一组 `-RestoreConfigFile <配置路径> -RestorePackagesPath <缓存目录>` 传给打包脚本。生产插件保留 NuGet 引用，不引用宿主项目。
 
 ## 验证与发布
 
-在 Windows 仓库根执行 `act workflow_dispatch --artifact-server-path "$env:TEMP/ura-act-artifacts"`。本地与 GitHub 使用同一份 workflow；托管构建、Host 验包与 smoke 由共用 workflow 执行，原生 job 执行 `native/build.ps1` 的 locked Cargo 测试、Release 构建及 x64 PE / `hachimi_init_v3` 导出检查。环境要求和共用 workflow 本地映射见 [URA plugin workflows](https://github.com/URA-Plugins/.github/blob/927fa76bae243fc22cc6fa4e09a0e4754f096abb/README.md)。
+在 Windows 仓库根执行 `act workflow_dispatch --artifact-server-path "$env:TEMP/ura-act-artifacts"`。本地与 GitHub 使用同一份 workflow；托管构建与 Host 验包由共用 workflow 执行，原生 job 执行 `native/build.ps1` 的 locked Cargo Release 构建及 x64 PE / `hachimi_init_v3` 导出检查。环境要求和共用 workflow 本地映射见 [URA plugin workflows](https://github.com/URA-Plugins/.github/blob/927fa76bae243fc22cc6fa4e09a0e4754f096abb/README.md)。
 
 版本 tag 必须匹配插件 manifest 版本。两组验证都通过后，同一个 GitHub Release 发布 `SkillTipsResponseAnalyzer.zip`、`skill_tips_bridge.dll` 和包含两者 SHA256 的 `SHA256SUMS.txt`；原生 DLL 不放入 Host 插件 ZIP。下载后可用 `Get-FileHash -Algorithm SHA256 <文件路径>` 与校验文件对照。

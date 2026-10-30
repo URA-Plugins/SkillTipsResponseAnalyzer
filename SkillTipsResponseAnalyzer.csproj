@@ -32,7 +32,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="SkillTipsResponseAnalyzerSmoke" />
     <PackageReference Include="UmamusumeResponseAnalyzer" Version="*" PrivateAssets="all" />
   </ItemGroup>
 

@@ -1,8 +1,6 @@
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
-    & cargo test --locked
-    if ($LASTEXITCODE -ne 0) { throw "cargo test 失败，退出码 $LASTEXITCODE" }
     & cargo build --locked --release --target x86_64-pc-windows-msvc
     if ($LASTEXITCODE -ne 0) { throw "cargo build 失败，退出码 $LASTEXITCODE" }
 

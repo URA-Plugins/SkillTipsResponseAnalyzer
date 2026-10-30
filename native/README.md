@@ -35,8 +35,8 @@ Hachimi API v3 的主线程调度和 IL2CPP API 签名依据 [Hachimi-Edge eaf95
 pwsh -File .\build.ps1
 ```
 
-在 `native/` 中执行上述命令。脚本运行 Cargo 测试、构建 `target/x86_64-pc-windows-msvc/release/skill_tips_bridge.dll`，并验证 PE x64 与 `hachimi_init_v3` 导出。脚本不部署或启动游戏。
+在 `native/` 中执行上述命令。脚本构建 `target/x86_64-pc-windows-msvc/release/skill_tips_bridge.dll`，并验证 PE x64 与 `hachimi_init_v3` 导出。脚本不部署或启动游戏。
 
 仓库根目录的 `package.ps1` 直接在 `artifacts/` 输出 `SkillTipsResponseAnalyzer.zip`、相邻的 `skill_tips_bridge.dll` 和 `SHA256SUMS.txt`，覆盖同名构建产物。游戏若直接加载此目录中的 DLL，须先退出游戏。本地 SDK 构建可通过脚本参数 `-RestoreConfigFile`、`-RestorePackagesPath` 指定 NuGet 配置与包目录。
 
-离线测试覆盖配置地址、消息边界、严格 JSON 校验、目标校验、页面和育成版本核对、连接初始消息顺序，以及本地 WebSocket 握手、分片、发送和取消阻塞接收；测试使用 PowerShell 7 启动临时本地对端。游戏构造、依赖展开、UI 刷新与主线程生命周期需要实机验收。验收应比较预检前后真实选择不变、预检结果与替换结果一致，并覆盖切页、改变选择、切换育成和确认期间断线。
+游戏构造、依赖展开、UI 刷新与主线程生命周期需要实机验收。验收应比较预检前后真实选择不变、预检结果与替换结果一致，并覆盖切页、改变选择、切换育成和确认期间断线。

@@ -136,38 +136,3 @@ fn hex(text: &str) -> Result<Vec<u8>, String> {
         .map(|i| u8::from_str_radix(&text[i..i + 2], 16).map_err(|e| e.to_string()))
         .collect()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn profile_is_complete_and_contains_no_learning_entry() {
-        let p = parse().unwrap();
-        let mut keys = std::collections::HashSet::new();
-        for method in &p.methods {
-            assert!(keys.insert(&method.key));
-            assert_eq!(hex(&method.prologue).unwrap().len(), 16);
-            assert!(method.rva > 0);
-            assert!(!method.name.contains("Decide"));
-            assert!(!method.name.contains("SkillGet"));
-        }
-        for key in [
-            "model_ctor",
-            "select",
-            "reset",
-            "remaining",
-            "begin",
-            "out",
-            "update",
-            "current_view",
-            "transition",
-            "chara_id",
-            "start_time",
-            "turn",
-            "points",
-            "unbox_int",
-        ] {
-            assert!(keys.iter().any(|k| k.as_str() == key));
-        }
-    }
-}

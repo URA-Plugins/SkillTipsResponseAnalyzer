@@ -166,31 +166,3 @@ fn communicate(socket: Socket) -> Result<(), String> {
     output.join().map_err(|_| "WebSocket 发送线程发生 panic")?;
     result
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn register_orders_hello_before_snapshot_and_snapshot_is_not_selection() {
-        let (sender, receiver) = mpsc::sync_channel(8);
-        let client = Arc::new(Client {
-            id: 98765,
-            connected: AtomicBool::new(true),
-            sender,
-            socket: Socket::closed_for_test(),
-        });
-        let mut state = State::inactive();
-        state.selection_event = true;
-        register(client.clone(), state);
-        let hello: serde_json::Value = serde_json::from_slice(&receiver.recv().unwrap()).unwrap();
-        let snapshot: serde_json::Value =
-            serde_json::from_slice(&receiver.recv().unwrap()).unwrap();
-        assert_eq!(hello["kind"], "hello");
-        assert_eq!(hello["version"], 2);
-        assert_eq!(snapshot["kind"], "state");
-        assert_eq!(snapshot["selection_event"], false);
-        client.close();
-        remove(client.id);
-        assert!(!client.alive());
-    }
-}
