@@ -5,15 +5,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>2026.11.1</Version>
+    <Version>2026.11.1.1</Version>
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;tests/**</DefaultItemExcludes>
 
     <!-- URA 插件元数据 -->
     <PluginInternalName>SkillTipsResponseAnalyzer</PluginInternalName>
     <PluginDisplayName>育成结束时给出评分最大化的技能点法</PluginDisplayName>
     <PluginAuthor>离披&amp;Github Contributors</PluginAuthor>
-    <PluginDescription>有时候会有1~10分的误差，数据更新不及时会不准，精度不高仅供参考</PluginDescription>
+    <PluginDescription>育成结束时联合计算技能购买与进化的预计评价方案。</PluginDescription>
     <PluginRepositoryUrl>https://github.com/URA-Plugins/SkillTipsResponseAnalyzer</PluginRepositoryUrl>
-    <PluginChangelog>修复等级图片绘制导致 URA 退出的问题：输出前检测终端图形能力，不支持时直接显示等级文字。</PluginChangelog>
+    <PluginChangelog>联合优化技能购买、学习条件和进化，最大化最终预计评价，同分时少花技能点。</PluginChangelog>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +34,7 @@
 
   <ItemGroup>
     <PackageReference Include="UmamusumeResponseAnalyzer" Version="*" PrivateAssets="all" />
+    <PackageReference Include="Google.OrTools" Version="9.15.6755" />
   </ItemGroup>
 
 </Project>

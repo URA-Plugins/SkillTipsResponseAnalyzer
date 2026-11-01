@@ -313,4 +313,15 @@
   <data name="I18N_BridgeMessageTooLarge" xml:space="preserve">
     <value>スキルブリッジのメッセージが UTF-8 で {0} バイトを超えています。</value>
   </data>
+
+  <data name="UnsupportedCondition" xml:space="preserve"><value>進化条件 {0} を解釈できません：{1}</value></data>
+  <data name="RemoveBadSkill" xml:space="preserve"><value>{0} を解除</value></data>
+  <data name="CalculationNotes" xml:space="preserve"><value>アルゴリズムの実装</value></data>
+  <data name="AlgorithmModel" xml:space="preserve"><value>現在のスキルPtの範囲内で、習得済みスキル、進化条件、シナリオ進化枠を考慮し、習得と進化の組み合わせを選びます。</value></data>
+  <data name="AlgorithmObjective" xml:space="preserve"><value>推定評価が最も高いプランを優先します。同じ評価なら消費スキルPtが少ないプランを選ぶため、ポイントが余る場合があります。</value></data>
+  <data name="EstimatedScore" xml:space="preserve"><value>おすすめは本プラグインの評価計算に基づきます。推定評価はゲームの最終評価とわずかに異なる場合があります。</value></data>
+  <data name="CostMismatch" xml:space="preserve"><value>残りスキルPtの予測は {0}、ゲームモデルでは {1} です。選択を中止しました。</value></data>
+  <data name="CalculationFailed" xml:space="preserve"><value>スキル計算に失敗しました：{0}</value></data>
+  <data name="AutomaticEvolution" xml:space="preserve"><value>{0}（自動進化）</value></data>
+  <data name="NativeRuntimeMissing" xml:space="preserve"><value>OR-Tools のネイティブコンポーネントを読み込めません。プラグイン ZIP と Microsoft Visual C++ x64 ランタイムを確認してください：{0}</value></data>
 </root>

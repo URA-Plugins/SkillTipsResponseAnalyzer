@@ -28,6 +28,7 @@ struct Info {
     acquired: bool,
     available: bool,
     locked: bool,
+    unresolvable: bool,
 }
 
 #[derive(Default)]
@@ -168,6 +169,7 @@ impl Runtime {
                     acquired: memory::boolean(pointer, 0x18)?,
                     available: memory::boolean(pointer, 0x19)?,
                     locked: memory::boolean(pointer, 0x1a)?,
+                    unresolvable: memory::boolean(pointer, 0x40)?,
                 });
             }
         }
@@ -478,8 +480,8 @@ fn checked_targets(infos: &[Info], requested: &[i32]) -> Result<Vec<i32>, String
             .iter()
             .find(|info| info.id == *id)
             .ok_or_else(|| format!("模型缺少推荐技能 {id}"))?;
-        if info.acquired || info.locked || !info.available {
-            return Err(format!("技能 {} 已学习、锁定或不可学习", info.id));
+        if info.acquired || info.locked || !info.available || info.unresolvable {
+            return Err(format!("技能 {} 已学习、锁定、不可学习或不可解除", info.id));
         }
         ordered.push(info.id);
     }

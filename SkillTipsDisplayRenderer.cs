@@ -34,14 +34,16 @@ internal sealed record SkillTipsDisplaySnapshot(
     int ScoreToNextRank,
     double RankProgress,
     ImmutableArray<string> KnownIssues,
-    string? AverageCostEffectiveness,
-    string? MarginalCostEffectiveness,
-    ImmutableArray<SkillTipsCostEffectiveness> ExpectedCostEffectiveness,
-    ImmutableArray<string> Warnings);
+    ImmutableArray<string> Warnings,
+    string OptimizationStatus,
+    long ObjectiveUpperBound,
+    ImmutableArray<int> LearningSkillIds,
+    ImmutableArray<int> LearnedSkillIds,
+    ImmutableArray<int> FinalSkillIds,
+    ImmutableArray<SkillEvolutionChoice> Evolutions);
 
 internal sealed record SkillTipsDisplaySkill(int SkillId, string Name, int SkillPoints, int Score);
 
-internal sealed record SkillTipsCostEffectiveness(int SkillPoints, string Value);
 
 internal static class SkillTipsDisplayRenderer
 {
@@ -154,20 +156,30 @@ internal static class SkillTipsDisplayRenderer
             selectRecommended.KeyDown += (_, key) =>
             {
                 if (key == Key.Tab)
-                    key.Handled = details.CostEffectiveness.SetFocus();
+                    key.Handled = details.SetFocus();
                 else if (key == Key.Tab.WithShift)
                     key.Handled = table.Body.SetFocus();
             };
-            table.NextFocus = details.CostEffectiveness;
+            table.NextFocus = details;
             table.PreviousFocus = sort;
-            details.CostEffectiveness.NextFocus = sort;
-            details.CostEffectiveness.PreviousFocus = table.Body;
+            details.KeyDown += (_, key) =>
+            {
+                if (key == Key.Tab)
+                    key.Handled = sort.SetFocus();
+                else if (key == Key.Tab.WithShift)
+                    key.Handled = (selectRecommended.Visible && selectRecommended.Enabled
+                        ? (View)selectRecommended : table.Body).SetFocus();
+                else if (key == Key.PageDown)
+                    key.Handled = ScrollVertical(Math.Max(1, Viewport.Height - 1)) is not false;
+                else if (key == Key.PageUp)
+                    key.Handled = ScrollVertical(-Math.Max(1, Viewport.Height - 1)) is not false;
+            };
             sort.KeyDown += (_, key) =>
             {
                 if (key == Key.Tab)
                     key.Handled = table.Body.SetFocus();
                 else if (key == Key.Tab.WithShift)
-                    key.Handled = details.CostEffectiveness.SetFocus();
+                    key.Handled = details.SetFocus();
             };
             sort.ValueChanged += (_, _) => UpdateSort();
             UpdateSort();
@@ -181,10 +193,10 @@ internal static class SkillTipsDisplayRenderer
                 if (table.Body.HasFocus)
                     RevealVertically(skills.Frame.Y);
             };
-            details.CostEffectiveness.HasFocusChanged += (_, _) =>
+            details.HasFocusChanged += (_, _) =>
             {
-                if (details.CostEffectiveness.HasFocus)
-                    RevealVertically(details.Frame.Y + details.CostEffectiveness.Frame.Y);
+                if (details.HasFocus)
+                    RevealVertically(details.Frame.Y);
             };
             Add(skills, details);
             HasFocusChanged += (_, _) =>
@@ -224,11 +236,9 @@ internal static class SkillTipsDisplayRenderer
                 && display.Training.Matches(state.Training);
             table.Body.SetSelectedSkills(matches ? state!.SelectedSkillIds : [],
                 allowScroll && matches && state!.SelectionEvent && IsCurrentView());
-            selectRecommended.Enabled = matches && !selecting && !display.Skills.IsEmpty;
+            selectRecommended.Enabled = matches && !selecting && !display.LearningSkillIds.IsEmpty;
             table.NextFocus = selectRecommended.Visible && selectRecommended.Enabled
-                ? selectRecommended : details.CostEffectiveness;
-            details.CostEffectiveness.PreviousFocus = selectRecommended.Visible && selectRecommended.Enabled
-                ? selectRecommended : table.Body;
+                ? selectRecommended : details;
         }
 
         bool IsCurrentView()
@@ -280,7 +290,10 @@ internal static class SkillTipsDisplayRenderer
             try
             {
                 var prepared = await bridge.PrepareAsync(display.Training,
-                    [.. display.Skills.Select(row => row.SkillId)], cancellationToken).ConfigureAwait(false);
+                    [.. display.LearningSkillIds], cancellationToken).ConfigureAwait(false);
+                if (prepared.RemainingPoints != display.RemainingSkillPoints)
+                    throw new InvalidDataException(string.Format(SkillPlanning.Text("CostMismatch"),
+                        display.RemainingSkillPoints, prepared.RemainingPoints));
                 var accepted = false;
                 await InvokeAsync(() =>
                 {
@@ -472,8 +485,8 @@ internal static class SkillTipsDisplayRenderer
                     HorizontalScrollBar.Value = 0;
                     RevealVertically(skills.Frame.Bottom - 1 - selectRecommended.Frame.Height);
                 }
-                else if (details.CostEffectiveness.HasFocus)
-                    RevealVertically(details.Frame.Y + details.CostEffectiveness.Frame.Y);
+                else if (details.HasFocus)
+                    RevealVertically(details.Frame.Y);
             }
             lastFrameSize = Frame.Size;
             lastWide = wide;
@@ -730,7 +743,6 @@ internal static class SkillTipsDisplayRenderer
     sealed class SkillTipsDetailsView : View
     {
         const int Gap = 1;
-        const int MinimumCostHeight = 3;
         readonly SkillTipsSummaryView summary;
         readonly FrameView knownIssues;
         readonly Label knownIssuesText;
@@ -739,7 +751,7 @@ internal static class SkillTipsDisplayRenderer
         public SkillTipsDetailsView(SkillTipsDisplaySnapshot display)
         {
             CanFocus = true;
-            TabStop = TabBehavior.NoStop;
+            TabStop = TabBehavior.TabStop;
             SetScheme(SkillTipsPalette.BaseScheme);
 
             summary = new(display)
@@ -767,44 +779,26 @@ internal static class SkillTipsDisplayRenderer
             knownIssuesText.SetScheme(SkillTipsPalette.BaseScheme);
             knownIssues.Add(knownIssuesText);
 
-            CostEffectiveness = new(
-            [
-                .. display.AverageCostEffectiveness is null
-                    ? []
-                    : new[] { string.Format(I18N_AverageCostEffectiveness, display.AverageCostEffectiveness) },
-                .. display.MarginalCostEffectiveness is null
-                    ? []
-                    : new[] { string.Format(I18N_MarginalCostEffectiveness, display.MarginalCostEffectiveness) },
-                I18N_ExpectedCostEffectiveness,
-                .. display.ExpectedCostEffectiveness.Select(x =>
-                    string.Format(I18N_ExpectedCostEffectivenessByPrice, x.SkillPoints, x.Value))
-            ]);
-            Add(summary, knownIssues, CostEffectiveness);
+            Add(summary, knownIssues);
 
             PreferredWidth = Math.Max(
                 summary.PreferredWidth,
-                Math.Max(
-                    display.KnownIssues[0].GetColumns() + 4,
-                    I18N_CostEffectiveness.GetColumns() + 4));
+                display.KnownIssues[0].GetColumns() + 4);
             MinimumAccessibleWidth = new[]
             {
                 I18N_ScoreSummary,
                 I18N_PredictedRank,
-                display.KnownIssues[0],
-                I18N_CostEffectiveness
+                display.KnownIssues[0]
             }.Max(x => x.GetColumns()) + 4;
         }
 
-        public SkillTipsCostEffectivenessView CostEffectiveness { get; }
         public int PreferredWidth { get; }
         public int MinimumAccessibleWidth { get; }
 
         public int GetMinimumHeight(int width)
             => summary.GetRequiredHeight(width)
                 + Gap
-                + GetKnownIssuesHeight(width)
-                + Gap
-                + MinimumCostHeight;
+                + GetKnownIssuesHeight(width);
 
         protected override void OnSubViewLayout(LayoutEventArgs args)
         {
@@ -817,13 +811,6 @@ internal static class SkillTipsDisplayRenderer
             var knownIssuesHeight = GetKnownIssuesHeight(width);
             knownIssues.Frame = new(0, y, width, knownIssuesHeight);
             LayoutKnownIssues(width, knownIssuesHeight);
-            y += knownIssuesHeight + Gap;
-
-            CostEffectiveness.Frame = new(
-                0,
-                y,
-                width,
-                Math.Max(MinimumCostHeight, Viewport.Height - y));
             base.OnSubViewLayout(args);
         }
 
@@ -1107,86 +1094,6 @@ internal static class SkillTipsDisplayRenderer
                 TColor.Black);
             renderedImageKey = key;
         }
-    }
-
-    sealed class SkillTipsCostEffectivenessView : FrameView
-    {
-        readonly string[] lines;
-        readonly Label text;
-
-        public SkillTipsCostEffectivenessView(string[] lines)
-        {
-            this.lines = lines;
-            Id = "skill-tips-cost-effectiveness";
-            Title = I18N_CostEffectiveness;
-            BorderStyle = LineStyle.Single;
-            CanFocus = true;
-            TabStop = TabBehavior.TabStop;
-            ViewportSettings = ViewportSettingsFlags.HasVerticalScrollBar;
-            SetScheme(SkillTipsPalette.BaseScheme);
-            text = new()
-            {
-                Id = "skill-tips-cost-effectiveness-text",
-                X = 1,
-                Y = 0,
-                CanFocus = false,
-                HotKeySpecifier = new Rune(0)
-            };
-            text.SetScheme(SkillTipsPalette.BaseScheme);
-            Add(text);
-            HasFocusChanged += (_, _) => Border.GetOrCreateView().SetScheme(
-                HasFocus ? SkillTipsPalette.FocusBorderScheme : SkillTipsPalette.BaseScheme);
-            MouseEvent += (_, mouse) =>
-            {
-                if (mouse.Flags.HasFlag(MouseFlags.WheeledDown))
-                    ScrollVertical(1);
-                else if (mouse.Flags.HasFlag(MouseFlags.WheeledUp))
-                    ScrollVertical(-1);
-                else
-                    return;
-
-                SetFocus();
-                mouse.Handled = true;
-            };
-        }
-
-        public View? NextFocus { get; set; }
-        public View? PreviousFocus { get; set; }
-
-        protected override void OnSubViewLayout(LayoutEventArgs args)
-        {
-            var width = Math.Max(1, Viewport.Width);
-            var wrapWidth = Math.Max(1, width - 2);
-            var wrapped = WrapLines(lines, wrapWidth);
-            text.Frame = new(1, 0, wrapWidth, wrapped.Length);
-            text.Text = string.Join(Environment.NewLine, wrapped);
-            var contentSize = new Size(width, Math.Max(Viewport.Height, wrapped.Length));
-            if (GetContentSize() != contentSize)
-                SetContentSize(contentSize);
-
-            var maxY = Math.Max(0, contentSize.Height - Viewport.Height);
-            if (Viewport.Y > maxY)
-                Viewport = new(0, maxY, Viewport.Width, Viewport.Height);
-            base.OnSubViewLayout(args);
-        }
-
-        protected override bool OnKeyDown(Key key)
-        {
-            if (key == Key.Tab && NextFocus?.SetFocus() == true)
-                return true;
-            if (key == Key.Tab.WithShift && PreviousFocus?.SetFocus() == true)
-                return true;
-            if (key == Key.CursorDown)
-                return ScrollVertical(1) is not false;
-            if (key == Key.CursorUp)
-                return ScrollVertical(-1) is not false;
-            if (key == Key.PageDown)
-                return ScrollVertical(Math.Max(1, Viewport.Height - 1)) is not false;
-            if (key == Key.PageUp)
-                return ScrollVertical(-Math.Max(1, Viewport.Height - 1)) is not false;
-            return base.OnKeyDown(key);
-        }
-
     }
 
     static class SkillTipsPalette

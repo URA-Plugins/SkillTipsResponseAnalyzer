@@ -313,4 +313,15 @@ Replace the pending selection with the recommended skills? Skills will not be le
   <data name="I18N_BridgeMessageTooLarge" xml:space="preserve">
     <value>SkillTips bridge message exceeds {0} UTF-8 bytes.</value>
   </data>
+
+  <data name="UnsupportedCondition" xml:space="preserve"><value>Evolution condition {0} cannot be interpreted: {1}</value></data>
+  <data name="RemoveBadSkill" xml:space="preserve"><value>Remove {0}</value></data>
+  <data name="CalculationNotes" xml:space="preserve"><value>Algorithm implementation</value></data>
+  <data name="AlgorithmModel" xml:space="preserve"><value>Choose skills to learn and evolve within your available skill points, taking learned skills, evolution requirements, and scenario evolution slots into account.</value></data>
+  <data name="AlgorithmObjective" xml:space="preserve"><value>Choose the plan with the highest estimated rating. If ratings are equal, spend fewer skill points, so some points may remain.</value></data>
+  <data name="EstimatedScore" xml:space="preserve"><value>Recommendations use this plugin's scoring rules. The estimated rating may differ slightly from the game's final rating.</value></data>
+  <data name="CostMismatch" xml:space="preserve"><value>Expected {0} remaining points, but the game model reported {1}; selection stopped.</value></data>
+  <data name="CalculationFailed" xml:space="preserve"><value>Skill planning failed: {0}</value></data>
+  <data name="AutomaticEvolution" xml:space="preserve"><value>{0} (automatic evolution)</value></data>
+  <data name="NativeRuntimeMissing" xml:space="preserve"><value>OR-Tools native components could not load. Check the plugin ZIP and the Microsoft Visual C++ x64 Redistributable: {0}</value></data>
 </root>

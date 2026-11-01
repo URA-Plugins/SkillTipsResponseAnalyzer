@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <HostRuntimeDirectory Condition="'$(HostRuntimeDirectory)' == ''">$(UraTestHostRoot)/UmamusumeResponseAnalyzer/bin/Release/net10.0</HostRuntimeDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../SkillOptimizer.cs" Link="SkillOptimizer.cs" />
+    <Compile Include="../../SkillPlanning.cs" Link="SkillPlanning.cs" />
+    <Compile Include="../../i18n/ParseSkillTipsResponse.Designer.cs" Link="ParseSkillTipsResponse.Designer.cs" />
+    <EmbeddedResource Include="../../i18n/ParseSkillTipsResponse.resx" LogicalName="SkillTipsResponseAnalyzer.i18n.ParseSkillTipsResponse.resources" />
+    <Reference Include="UmamusumeResponseAnalyzer" HintPath="$(HostRuntimeDirectory)/UmamusumeResponseAnalyzer.dll" />
+    <PackageReference Include="Google.OrTools" Version="9.15.6755" />
+  </ItemGroup>
+  <Target Name="RequireHostRuntime" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(HostRuntimeDirectory)/UmamusumeResponseAnalyzer.dll')" Text="Pass -p:HostRuntimeDirectory=... for the matching built Host runtime." />
+  </Target>
+</Project>

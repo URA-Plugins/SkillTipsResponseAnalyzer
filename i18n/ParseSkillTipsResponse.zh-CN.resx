@@ -313,4 +313,15 @@
   <data name="I18N_BridgeMessageTooLarge" xml:space="preserve">
     <value>技能桥接消息超过 {0} 个 UTF-8 字节。</value>
   </data>
+
+  <data name="UnsupportedCondition" xml:space="preserve"><value>进化条件 {0} 无法解析：{1}</value></data>
+  <data name="RemoveBadSkill" xml:space="preserve"><value>解除 {0}</value></data>
+  <data name="CalculationNotes" xml:space="preserve"><value>算法实现</value></data>
+  <data name="AlgorithmModel" xml:space="preserve"><value>在当前技能点范围内，结合已学技能、进化条件和剧本进化名额，选择技能学习与进化组合。</value></data>
+  <data name="AlgorithmObjective" xml:space="preserve"><value>优先选择预计评价最高的方案；评价相同时少花技能点，因此可能有技能点剩余。</value></data>
+  <data name="EstimatedScore" xml:space="preserve"><value>推荐基于本插件的评分规则，预计评价可能与游戏结算略有差异。</value></data>
+  <data name="CostMismatch" xml:space="preserve"><value>预计剩余技能点为 {0}，游戏模型预检为 {1}；已停止勾选。</value></data>
+  <data name="CalculationFailed" xml:space="preserve"><value>技能方案计算失败：{0}</value></data>
+  <data name="AutomaticEvolution" xml:space="preserve"><value>{0}（自动进化）</value></data>
+  <data name="NativeRuntimeMissing" xml:space="preserve"><value>OR-Tools 原生组件加载失败。请检查插件 ZIP 完整性及 Microsoft Visual C++ x64 运行库：{0}</value></data>
 </root>
