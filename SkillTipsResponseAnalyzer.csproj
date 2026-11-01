@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>2026.10.31</Version>
+    <Version>2026.11.1</Version>
 
     <!-- URA 插件元数据 -->
     <PluginInternalName>SkillTipsResponseAnalyzer</PluginInternalName>
@@ -13,7 +13,7 @@
     <PluginAuthor>离披&amp;Github Contributors</PluginAuthor>
     <PluginDescription>有时候会有1~10分的误差，数据更新不及时会不准，精度不高仅供参考</PluginDescription>
     <PluginRepositoryUrl>https://github.com/URA-Plugins/SkillTipsResponseAnalyzer</PluginRepositoryUrl>
-    <PluginChangelog>更新构建依赖；发布前验证托管插件与原生桥接，独立交付原生 DLL 和 SHA256 校验文件。</PluginChangelog>
+    <PluginChangelog>修复等级图片绘制导致 URA 退出的问题：输出前检测终端图形能力，不支持时直接显示等级文字。</PluginChangelog>
   </PropertyGroup>
 
   <ItemGroup>
