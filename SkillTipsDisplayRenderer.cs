@@ -1049,6 +1049,7 @@ internal static class SkillTipsDisplayRenderer
     sealed class RankImageView : ImageView
     {
         readonly string rank;
+        readonly Label rankLabel;
         (string Rank, int PixelWidth, int PixelHeight)? renderedImageKey;
 
         public RankImageView(string rank)
@@ -1058,31 +1059,39 @@ internal static class SkillTipsDisplayRenderer
             UseBackgroundRendering = false;
             CanFocus = false;
             TabStop = TabBehavior.NoStop;
+            rankLabel = new()
+            {
+                Text = rank,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                TextAlignment = Alignment.Center,
+                VerticalTextAlignment = Alignment.Center,
+                CanFocus = false
+            };
+            rankLabel.SetScheme(SkillTipsPalette.RankProgressScheme);
+            Add(rankLabel);
         }
 
         protected override bool OnDrawingContent(DrawContext? context)
         {
+            rankLabel.Visible = !OperatingSystem.IsWindows() || !IsUsingRasterGraphics;
+            if (rankLabel.Visible)
+            {
+                if (Image is not null)
+                {
+                    Image = null;
+                    renderedImageKey = null;
+                }
+                return true;
+            }
+
             EnsureRankImage();
             return base.OnDrawingContent(context);
         }
 
         void EnsureRankImage()
         {
-            if (!OperatingSystem.IsWindows())
-                throw new PlatformNotSupportedException("预测等级字体栅格化仅支持 Windows。");
-
-            Size pixelSize;
-            try
-            {
-                pixelSize = ViewportToScreenInPixels().Size;
-            }
-            catch (InvalidOperationException exception)
-            {
-                throw new NotSupportedException(
-                    "预测等级图像需要 Kitty 或 Sixel raster graphics 支持。",
-                    exception);
-            }
-
+            var pixelSize = ViewportToScreenInPixels().Size;
             if (pixelSize.Width <= 0 || pixelSize.Height <= 0)
                 return;
 

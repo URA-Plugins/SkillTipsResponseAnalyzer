@@ -2,6 +2,8 @@
 
 育成角色进入结束状态且没有未处理事件时，计算技能评分方案并在 `SkillTipsResponseAnalyzer` workspace 中显示结果。single-mode `finish` 和插件的 `DisposeAsync` 都会移除该 workspace。
 
+预测等级在 Windows 且终端支持 Kitty 或 Sixel 图形协议时显示为图片，否则显示为文字。
+
 ## 排序设置
 
 插件设置中的「默认排序」「按性价比排序」决定后续结果的显示顺序，保存后从下一次结果生效。默认排序按游戏内顺序排列；性价比按显示评分 / 所需技能点降序排列，同值保持默认顺序，不改变推荐技能或评分计算。
